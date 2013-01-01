@@ -1,11 +1,11 @@
 #!/bin/bash
-# Get Ubuntu code name.
-release_code=`lsb_release -cs`
+# apt-add-repository is not installed on all system and is part of
+# python-software-properties package.
+sudo apt-get install -y python-software-properties
 
 # Add salt PPA key and create PPA file.
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E27C0A6
-echo "deb http://ppa.launchpad.net/saltstack/salt/ubuntu $release_code main " > \
-    /etc/apt/sources.list.d/saltstack-salt-${release_code}.list
+sudo apt-add-repository -y ppa:saltstack/sal
 
 sudo apt-get update
 sudo apt-get install -y salt-minion
