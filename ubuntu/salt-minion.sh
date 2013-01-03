@@ -5,7 +5,7 @@ sudo apt-get install -y python-software-properties
 
 # Add salt PPA key and create PPA file.
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E27C0A6
-sudo apt-add-repository -y ppa:saltstack/sal
+sudo apt-add-repository -y ppa:saltstack/salt
 
 sudo apt-get update
 sudo apt-get install -y salt-minion
