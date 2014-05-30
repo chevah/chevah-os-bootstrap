@@ -54,28 +54,23 @@ ftp ftp.software.ibm.com
 # We install wget first so that we can use it in the script.
 rpm -i wget-1.9.1-1.aix5.1.ppc.rpm
 
-BASH_RPM=bash-3.0-1.aix5.1.ppc.rpm
-BASH_RPM=bash-3.2-1.aix5.2.ppc.rpm
-wget ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc/bash/$BASH_RPM
-rpm -i $BASH_RPM
 
-#SUDO_RPM=sudo-1.6.7p5-3.aix5.1.ppc.rpm
-#SUDO_RPM=sudo-1.6.9p23-2noldap.aix5.3.ppc.rpm
-#wget ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc/sudo/$SUDO_RPM
+# Get the other required rpms from AIX's toolbox.
+IBM_FTP_LINK_BASE="ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc"
+RPM_DEPS="bash-3.2-1.aix5.2.ppc.rpm \
+    vim-common-6.3-1.aix5.1.ppc.rpm \
+    vim-enhanced-6.3-1.aix5.1.ppc.rpm \
+    make-3.80-1.aix5.1.ppc.rpm"
+for RPM_FILE in $RPM_DEPS; do
+    RPM_DIR=`echo $RPM_FILE | cut -d\- -f1`
+    wget "$IBM_FTP_LINK_BASE"/"$RPM_DIR"/"$RPM_FILE"
+    sudo rpm -i $RPM_FILE && rm $RPM_FILE
+done
 
 # We need sudo -E, thus a newer sudo than the one in the AIX toolbox.
 SUDO_RPM=sudo-1.8.10-4.aix53.pam.rpm
 wget ftp://ftp.sudo.ws/pub/sudo/packages/AIX/5.3/$SUDO_RPM
 rpm -i $SUDO_RPM
-
-wget ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc/vim/vim-common-6.3-1.aix5.1.ppc.rpm
-rpm -i vim-common-6.3-1.aix5.1.ppc.rpm
-
-wget ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc/vim/vim-enhanced-6.3-1.aix5.1.ppc.rpm
-rpm -i vim-enhanced-6.3-1.aix5.1.ppc.rpm
-
-wget ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc/make/make-3.80-1.aix5.1.ppc.rpm
-rpm -i make-3.80-1.aix5.1.ppc.rpm
 
 echo '%staff        ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 chmod 440 /etc/sudoers

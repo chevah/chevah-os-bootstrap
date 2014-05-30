@@ -2,7 +2,7 @@
 #
 # Downloads, compiles and installs GIT.
 # Adds git path to ~/bash_profile path... if it exists.
-# Requires wget and sudo.
+# Requires wget, gmake and sudo.
 # Installs gcc, zlib, zlib-devel and coreutils.
 #
 
@@ -31,8 +31,7 @@ done
 INSTALL_SCRIPT="/usr/linux/bin/install"
 
 # Delete already existent git build folder and archive.
-rm -rf $GIT_FOLDER
-rm -rf $GIT_TAR_GZ
+rm -rf $GIT_FOLDER $GIT_TAR_GZ
 
 wget ${GIT_REMOTE_ARCHIVE}
 gunzip -c $GIT_TAR_GZ | tar -xf -
