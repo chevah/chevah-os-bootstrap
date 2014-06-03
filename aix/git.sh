@@ -1,15 +1,14 @@
 #!/bin/sh
 #
-# Downloads, compiles and installs GIT.
-# Adds git path to ~/bash_profile path... if it exists.
+# Downloads, compiles and installs GIT as a regular user (eg. chevah).
+# Adds the path to the git binary and other related env vars to its ~/.profile.
 # Requires wget, gmake and sudo.
-# Installs gcc, zlib, zlib-devel and coreutils.
+# Installs gcc, coreutils, zlib, zlib-devel RPMs from IBM.
 #
 
 GIT_VERSION=1.9.0
 
-# Folder where git will be installed.
-INSTALL_FOLDER=~/.local
+INSTALL_FOLDER="/usr/local"
 
 GIT_FOLDER=git-${GIT_VERSION}
 GIT_TAR_GZ=${GIT_FOLDER}.tar.gz
@@ -20,35 +19,39 @@ IBM_FTP_LINK_BASE="ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/p
 RPM_DEPS="gcc-4.2.0-3.aix5.3.ppc.rpm \
           coreutils-5.0-2.aix5.1.ppc.rpm \
           zlib-1.2.3-4.aix5.2.ppc.rpm \
-          zlib-devel-1.2.3-4.aix5.2.ppc.rpm"
+          zlib-devel-1.2.3-4.aix5.2.ppc.rpm \
+          "
+# Absolute path to the install binary from the coreutils package.
+INSTALL_SCRIPT="/usr/linux/bin/install"
+
+#
+# Here we go...
+#
+
+# Delete already existing RPM files and the git build directory.
+echo "Removing already existing git-related files from the current directory..."
+rm -rf $RPM_DEPS $GIT_TAR_GZ $GIT_FOLDER
+
 for RPM_FILE in $RPM_DEPS; do
+    echo "Downloading and installing ${RPM_FILE}..."
     RPM_DIR=`echo $RPM_FILE | cut -d\- -f1`
     wget "$IBM_FTP_LINK_BASE"/"$RPM_DIR"/"$RPM_FILE"
     sudo rpm -i $RPM_FILE && rm $RPM_FILE
 done
 
-# Absolute path to a ginstall from the coreutils package.
-INSTALL_SCRIPT="/usr/linux/bin/install"
-
-# Delete already existent git build folder and archive.
-rm -rf $GIT_FOLDER $GIT_TAR_GZ
-
 wget ${GIT_REMOTE_ARCHIVE}
-gunzip -c $GIT_TAR_GZ | tar -xf -
+gunzip -c $GIT_TAR_GZ | tar -xvf -
 
 cd $GIT_FOLDER
 
-./configure --prefix=
+./configure --prefix=${INSTALL_FOLDER} --without-tcltk \
+    && MSGFMT=echo gmake \
+    && MSGFMT=echo sudo gmake install INSTALL=${INSTALL_SCRIPT}
 
-NO_PYTHON=1 NO_CURL=1 NO_TCLTK=1 NO_GETTEXT=1 \
-    gmake install\
-        MSGFMT=echo\
-        DESTDIR=${INSTALL_FOLDER} INSTALL=${INSTALL_SCRIPT}
-
-if [ -f ~/.bash_profile ]; then
+if [ -f ~/.profile ]; then
     echo 'alias git-init="git init --template='${INSTALL_FOLDER}'/share/git-core/templates"'\
-        >> ~/.bash_profile
+        >> ~/.profile
     echo 'export GIT_EXEC_PATH='${INSTALL_FOLDER}'/libexec/git-core'\
-        >> ~/.bash_profile
-    echo 'export PATH=$PATH:'${INSTALL_FOLDER}'/bin' >> ~/.bash_profile
+        >> ~/.profile
+    echo 'export PATH=$PATH:'${INSTALL_FOLDER}'/bin' >> ~/.profile
 fi
