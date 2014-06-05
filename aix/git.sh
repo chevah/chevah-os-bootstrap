@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Downloads, compiles and installs GIT as a regular user (eg. chevah).
+# Downloads, compiles and installs GIT and cURL as a regular user (eg. chevah).
 # Adds the path to the git binary and other related env vars to its ~/.profile.
 # Requires wget, gmake and sudo.
 # Installs gcc, coreutils, zlib, zlib-devel RPMs from IBM's AIX Toolbox.
