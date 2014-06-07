@@ -55,6 +55,7 @@ chmod 700 ~/.netrc
 mkdir -p $WORK_FOLDER \
     && cd $WORK_FOLDER
 
+echo ''
 echo 'The FTP session will start. Wait for the prompt and then type the command'
 echo 'below, including the dollar sign. The script will take care of the rest.'
 echo ''
@@ -67,8 +68,12 @@ ftp $IBM_FTP_SERVER
 rpm -i $WGET_RPM_FILE \
     && rm $WGET_RPM_FILE
 
+# For vim-enhanced and sudo we need a bit more space...
+chfs -a size=+10M /opt
+
 # Get the other required rpms from AIX's toolbox.
 for RPM_FILE in $RPM_DEPS; do
+    echo "Downloading and installing ${RPM_FILE}..."
     RPM_DIR=`echo $RPM_FILE | cut -d\- -f1`
     wget "$IBM_FTP_LINK_BASE"/"$RPM_DIR"/"$RPM_FILE" \
         && rpm -i $RPM_FILE \
@@ -77,10 +82,9 @@ done
 
 wget $SUDO_RPM_LINK \
     && rpm -i $SUDO_RPM_FILE \
-    && rm $SUDO_RPM_FILE
-
-echo '%staff        ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-chmod 440 /etc/sudoers
+    && rm $SUDO_RPM_FILE \
+    && echo '%staff        ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
+    && chmod 440 /etc/sudoers
 
 # Create the new user.
 useradd -m ${NEW_USER}
@@ -94,8 +98,8 @@ alias ge=vi
 
 DELIM
 
-chown -R ${NEW_USER} /home/${NEW_USER}
-chgrp -R staff /home/${NEW_USER}
+# We need lots of space in /home.
+chfs -a size=+3G /home
 
 rmdir $WORK_FOLDER
 cd $START_FOLDER

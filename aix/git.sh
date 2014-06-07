@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# Downloads, compiles and installs GIT and cURL as a regular user (eg. chevah).
+# Downloads, compiles and installs GIT and cURL as a regular user (eg. chevah),
+# with SUDO rights. Requires wget, gmake, sudo and (optionally) OpenSSL.
 # Adds the path to the git binary and other related env vars to its ~/.profile.
-# Requires wget, gmake and sudo.
 # Installs gcc, coreutils, zlib, zlib-devel RPMs from IBM's AIX Toolbox.
 #
 
@@ -25,6 +25,7 @@ CURL_CA_BUNDLE="http://curl.haxx.se/ca/cacert.pem"
 # Get build deps from IBM's AIX Toolbox.
 IBM_FTP_LINK_BASE="ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc"
 RPM_DEPS="gcc-4.2.0-3.aix5.3.ppc.rpm \
+          libgcc-4.2.0-3.aix5.3.ppc.rpm \
           coreutils-5.0-2.aix5.1.ppc.rpm \
           zlib-1.2.3-4.aix5.2.ppc.rpm \
           zlib-devel-1.2.3-4.aix5.2.ppc.rpm \
@@ -32,6 +33,7 @@ RPM_DEPS="gcc-4.2.0-3.aix5.3.ppc.rpm \
 # Absolute path to the install binary from the coreutils package.
 INSTALL_SCRIPT="/usr/linux/bin/install"
 LDFLAGS="-L${INSTALL_DIR}/lib -Wl,-blibpath:${INSTALL_DIR}/lib:/usr/lib:/lib"
+START_FOLDER=`pwd`
 
 
 
@@ -43,10 +45,17 @@ LDFLAGS="-L${INSTALL_DIR}/lib -Wl,-blibpath:${INSTALL_DIR}/lib:/usr/lib:/lib"
 echo "Removing already existing git-related files from the current directory..."
 rm -rf $RPM_DEPS $GIT_TAR_GZ $GIT_DIR $CURL_TAR_GZ $CURL_DIR
 
+# Some more space is needed in /opt for the RPMS and in /usr for /usr/local/.
+sudo chfs -a size=+50M /opt
+sudo chfs -a size=+100M /usr
+
 # Download and install required RPMs.
 for RPM_FILE in $RPM_DEPS; do
     echo "Downloading and installing ${RPM_FILE}..."
     RPM_DIR=`echo $RPM_FILE | cut -d\- -f1`
+    if [ $RPM_DIR = "libgcc" ]; then
+        RPM_DIR="gcc"
+    fi
     wget "$IBM_FTP_LINK_BASE"/"$RPM_DIR"/"$RPM_FILE" \
         && sudo rpm -i $RPM_FILE \
         && rm $RPM_FILE
@@ -61,7 +70,9 @@ wget $CURL_REMOTE_ARCHIVE \
     && cd $CURL_DIR \
     && ./configure --prefix="$INSTALL_DIR" --with-ca-bundle=${CURL_CA_FILE} \
     && gmake \
-    && sudo make install
+    && sudo make install \
+    && cd "$START_FOLDER" \
+    && rm -rf $CURL_DIR $CURL_TAR_GZ
 
 # Get and compile git.
 export LDFLAGS
@@ -70,7 +81,9 @@ wget $GIT_REMOTE_ARCHIVE \
     && cd $GIT_DIR \
     && CURLDIR="$INSTALL_DIR" ./configure --prefix=${INSTALL_DIR} --without-tcltk \
     && gmake \
-    && sudo gmake install INSTALL=${INSTALL_SCRIPT}
+    && sudo gmake install INSTALL=${INSTALL_SCRIPT} \
+    && cd $START_FOLDER \
+    && rm -rf $GIT_DIR $GIT_TAR_GZ
 
 if [ -f ~/.profile ]; then
     echo 'alias git-init="git init --template='${INSTALL_DIR}'/share/git-core/templates"'\
