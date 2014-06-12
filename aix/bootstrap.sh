@@ -98,8 +98,5 @@ alias ge=vi
 
 DELIM
 
-# We need lots of space in /home.
-chfs -a size=+3G /home
-
 rmdir $WORK_FOLDER
 cd $START_FOLDER
