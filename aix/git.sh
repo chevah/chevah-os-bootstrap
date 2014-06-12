@@ -1,46 +1,94 @@
 #!/bin/sh
-# Download, compile and install GIT
 #
-# Add git path to ~/bash_profile path... if it exists.
-#
-# Requires wget and a compiler
+# Downloads, compiles and installs GIT and cURL as a regular user (eg. chevah),
+# with SUDO rights. Requires wget, gmake, sudo and (optionally) OpenSSL.
+# Adds the path to the git binary and other related env vars to its ~/.profile.
+# Installs gcc, coreutils, zlib, zlib-devel RPMs from IBM's AIX Toolbox.
 #
 
-GIT_VERSION=1.7.10
+GIT_VERSION="1.9.0"
+# Only selected versions would compile with the AIX Toolbox gcc compiler on AIX 5.3.
+CURL_VERSION="7.19.7"
 
-# Folder where git will be installed.
-INSTALL_FOLDER=~/.local
+INSTALL_DIR="/usr/local"
+CURL_CA_DIR="$INSTALL_DIR/etc/curl"
+CURL_CA_FILE="$CURL_CA_DIR/cacert.pem"
 
-GIT_FOLDER=git-${GIT_VERSION}
-GIT_TAR=${GIT_FOLDER}.tar
-GIT_TAR_GZ=${GIT_TAR}.gz
+GIT_DIR=git-${GIT_VERSION}
+GIT_TAR_GZ=${GIT_DIR}.tar.gz
 GIT_REMOTE_ARCHIVE=http://git-core.googlecode.com/files/${GIT_TAR_GZ}
+CURL_DIR=curl-${CURL_VERSION}
+CURL_TAR_GZ=${CURL_DIR}.tar.gz
+CURL_REMOTE_ARCHIVE=http://ftp.sunet.se/pub/www/utilities/curl/${CURL_TAR_GZ}
+CURL_CA_BUNDLE="http://curl.haxx.se/ca/cacert.pem"
 
-# Absolute path to a ginstall compatible install file.
-# We use a script that wraps ginstall arround aix install.
-INSTALL_SCRIPT=~/chevah/deps/src/chevah-bootstrap/aix/install.aix.sh
+# Get build deps from IBM's AIX Toolbox.
+IBM_FTP_LINK_BASE="ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc"
+RPM_DEPS="gcc-4.2.0-3.aix5.3.ppc.rpm \
+          libgcc-4.2.0-3.aix5.3.ppc.rpm \
+          coreutils-5.0-2.aix5.1.ppc.rpm \
+          zlib-1.2.3-4.aix5.2.ppc.rpm \
+          zlib-devel-1.2.3-4.aix5.2.ppc.rpm \
+          "
+# Absolute path to the install binary from the coreutils package.
+INSTALL_SCRIPT="/usr/linux/bin/install"
+LDFLAGS="-L${INSTALL_DIR}/lib -Wl,-blibpath:${INSTALL_DIR}/lib:/usr/lib:/lib"
+START_FOLDER=`pwd`
 
-# Delete already existent git build folder and archive.
-rm -rf $GIT_FOLDER
-rm -rf $GIT_TAR
 
-wget ${GIT_REMOTE_ARCHIVE}
-gunzip $GIT_TAR_GZ
-tar -xf $GIT_TAR
 
-cd $GIT_FOLDER
+#
+# Here we go...
+#
 
-./configure --prefix=
+# Delete already existing RPM files and the git build directory.
+echo "Removing already existing git-related files from the current directory..."
+rm -rf $RPM_DEPS $GIT_TAR_GZ $GIT_DIR $CURL_TAR_GZ $CURL_DIR
 
-NO_PYTHON=1 NO_CURL=1 NO_TCLTK=1 NO_GETTEXT=1 \
-    gmake install\
-        MSGFMT=echo\
-        DESTDIR=${INSTALL_FOLDER} INSTALL=${INSTALL_SCRIPT}
+# Some more space is needed in /opt for the RPMS and in /usr for /usr/local/.
+sudo chfs -a size=+50M /opt
+sudo chfs -a size=+100M /usr
 
-if [ -f ~/.bash_profile ]; then
-    echo 'alias git-init="git init --template='${INSTALL_FOLDER}'/share/git-core/templates"'\
-        >> ~/.bash_profile
-    echo 'export GIT_EXEC_PATH='${INSTALL_FOLDER}'/libexec/git-core'\
-        >> ~/.bash_profile
-    echo 'export PATH=$PATH:'${INSTALL_FOLDER}'/bin' >> ~/.bash_profile
+# Download and install required RPMs.
+for RPM_FILE in $RPM_DEPS; do
+    echo "Downloading and installing ${RPM_FILE}..."
+    RPM_DIR=`echo $RPM_FILE | cut -d\- -f1`
+    if [ $RPM_DIR = "libgcc" ]; then
+        RPM_DIR="gcc"
+    fi
+    wget "$IBM_FTP_LINK_BASE"/"$RPM_DIR"/"$RPM_FILE" \
+        && sudo rpm -i $RPM_FILE \
+        && rm $RPM_FILE
+done
+
+# Get and compile cURL, with custom CA bundle.
+sudo mkdir -p $CURL_CA_DIR
+wget $CURL_CA_BUNDLE -O curl_cacert.pem \
+    && sudo $INSTALL_SCRIPT curl_cacert.pem $CURL_CA_FILE
+wget $CURL_REMOTE_ARCHIVE \
+    && gunzip -c $CURL_TAR_GZ | tar -xvf - \
+    && cd $CURL_DIR \
+    && ./configure --prefix="$INSTALL_DIR" --with-ca-bundle=${CURL_CA_FILE} \
+    && gmake \
+    && sudo make install \
+    && cd "$START_FOLDER" \
+    && rm -rf $CURL_DIR $CURL_TAR_GZ
+
+# Get and compile git.
+export LDFLAGS
+wget $GIT_REMOTE_ARCHIVE \
+    && gunzip -c $GIT_TAR_GZ | tar -xvf - \
+    && cd $GIT_DIR \
+    && CURLDIR="$INSTALL_DIR" ./configure --prefix=${INSTALL_DIR} --without-tcltk \
+    && gmake \
+    && sudo gmake install INSTALL=${INSTALL_SCRIPT} \
+    && cd $START_FOLDER \
+    && rm -rf $GIT_DIR $GIT_TAR_GZ
+
+if [ -f ~/.profile ]; then
+    echo 'alias git-init="git init --template='${INSTALL_DIR}'/share/git-core/templates"'\
+        >> ~/.profile
+    echo 'export GIT_EXEC_PATH='${INSTALL_DIR}'/libexec/git-core'\
+        >> ~/.profile
+    echo 'export PATH=$PATH:'${INSTALL_DIR}'/bin' >> ~/.profile
 fi
