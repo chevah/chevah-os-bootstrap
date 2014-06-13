@@ -98,5 +98,6 @@ alias ge=vi
 
 DELIM
 
-rmdir $WORK_FOLDER
 cd $START_FOLDER
+rmdir $WORK_FOLDER
+
