@@ -47,7 +47,7 @@ rm -rf $RPM_DEPS $GIT_TAR_GZ $GIT_DIR $CURL_TAR_GZ $CURL_DIR
 
 # Some more space is needed in /opt for the RPMS and in /usr for /usr/local/.
 sudo chfs -a size=+50M /opt
-sudo chfs -a size=+100M /usr
+sudo chfs -a size=+150M /usr
 
 # Download and install required RPMs.
 for RPM_FILE in $RPM_DEPS; do
