@@ -1,7 +1,7 @@
 #!/usr/bin/sh
 # Simple script for creating a usable HPUX system
 # from an CLOE system.
-# 
+#
 # On HPUX do:
 #
 # login as root
@@ -37,7 +37,7 @@ machine hpux.connect.org.uk
 macdef bootstrap
     cd hpux/Sysadmin/depothelper-2.00/
     bin
-    get depothelper-2.00-ia64-11.31.depot.gz
+    get $DEPOTHELPER_DEPOT_GZ
     quit
 
 DELIM
@@ -102,15 +102,11 @@ DELIM
 useradd -G adm $NEWUSER
 mkdir /home/${NEWUSER}/.ssh
 cp -r ~/.ssh/authorized_keys /home/${NEWUSER}/.ssh/
-echo 'You also have the ccc.sh script download.'
-mkdir /home/${NEWUSER}
-
-wget https://raw.github.com/chevah/deps/master/src/chevah-paver/ccc.sh
 
 cat > /home/${NEWUSER}/.bash_profile <<DELIM
 export PATH=${PATH}:/usr/sbin:/usr/local/sbin:/usr/local/bin
 export TERM=vt200
-alias paver=~/chevah/deps/src/chevah-paver/paver.sh
+alias paver=~paver.sh
 export GIT_SSL_NO_VERIFY=true
 
 DELIM
