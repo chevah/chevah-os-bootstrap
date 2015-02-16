@@ -2,6 +2,11 @@
 # Simple script for creating a usable HPUX system
 # from an CLOE system.
 #
+# The system is assume to have an HP C and aC++ Developer Bundle installed.
+#
+# Packages from hpux.connect.org.uk will install in /usr/local, to prevent
+# linking to those package make sure you remove/rename /usr/local/include
+# folder after running depothelper.
 # On HPUX do:
 #
 # login as root
@@ -74,11 +79,13 @@ depothelper patch
 depothelper rsync
 depothelper less
 
+mv /usr/local/include /usr/local/include-renamed
+
 # Resize home partition.
-umount /dev/vg00/rlvol5
-lvextend -L 102400 /dev/vg00/lvol5
-extendfs -F vxfs /dev/vg00/rlvol5
-mount /dev/vg00/rlvol5
+umount /dev/vg00/lvol5
+lvextend -L 10240 /dev/vg00/lvol5
+extendfs -F vxfs /dev/vg00/lvol5
+mount /dev/vg00/lvol5
 
 echo 'Now you will have to change password for' ${NEWUSER}
 echo 'and set /usr/local/bin/bash as the default shell.'
@@ -100,13 +107,14 @@ DELIM
 
 # Add default files for new user.
 useradd -G adm $NEWUSER
+mkdir /home/${NEWUSER}
 mkdir /home/${NEWUSER}/.ssh
 cp -r ~/.ssh/authorized_keys /home/${NEWUSER}/.ssh/
 
 cat > /home/${NEWUSER}/.bash_profile <<DELIM
 export PATH=${PATH}:/usr/sbin:/usr/local/sbin:/usr/local/bin
 export TERM=vt200
-alias paver=~paver.sh
+alias paver=~./paver.sh
 export GIT_SSL_NO_VERIFY=true
 
 DELIM
