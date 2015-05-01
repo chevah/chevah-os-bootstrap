@@ -11,6 +11,9 @@
 INSTALL_DIR="/usr/local"
 CURL_CA_DIR="$INSTALL_DIR/etc/curl"
 CURL_CA_FILE="$CURL_CA_DIR/cacert.pem"
+
+# IBM's AIX Toolbox FTP base location.
+IBM_LINK_BASE="ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc"
 RPM_DEPS="
     coreutils-5.0-2.aix5.1.ppc.rpm \
     zlib-1.2.3-4.aix5.2.ppc.rpm \
@@ -36,9 +39,6 @@ else
         "
 fi
 
-# IBM's AIX Toolbox FTP base location.
-IBM_LINK_BASE="ftp://ftp.software.ibm.com/aix/freeSoftware/aixtoolbox/RPMS/ppc"
-
 CURL_DIR=curl-${CURL_VERSION}
 CURL_TAR_GZ=${CURL_DIR}.tar.gz
 CURL_REMOTE_ARCHIVE=http://ftp.sunet.se/pub/www/utilities/curl/${CURL_TAR_GZ}
@@ -47,7 +47,7 @@ GIT_DIR=git-${GIT_VERSION}
 GIT_TAR_GZ=${GIT_DIR}.tar.gz
 GIT_REMOTE_ARCHIVE=https://www.kernel.org/pub/software/scm/git/${GIT_TAR_GZ}
 
-# Absolute path to the install binary from the coreutils package.
+# Absolute path to the "install" binary from the coreutils package.
 INSTALL_SCRIPT="/usr/linux/bin/install"
 LDFLAGS="-L${INSTALL_DIR}/lib -Wl,-blibpath:${INSTALL_DIR}/lib:/usr/lib:/lib"
 CPPFLAGS="${CPPFLAGS} -I$INSTALL_DIR/include/"
@@ -105,19 +105,24 @@ for RPM_FILE in $RPM_DEPS; do
     RPM_DEPS_BASENAMES="${RPM_DEPS_BASENAMES} $RPM_BASENAME"
 done
 
-echo "\nThis script will download and install cURL and Git in AIX 5.3 or newer.\n"
+echo "\nThis script downloads and installs cURL and Git in AIX 5.3 or newer."
+echo "Requires wget, gmake, sudo and (optionally) OpenSSL headers and libs."
+echo "Uses IBM XL C compiler (if found) or IBM's GCC from the Toolbox RPMs."
+echo "Installs RPM deps from IBM's Toolbox and extends partitions as needed."
+echo "Check below for specific details.\n"
 echo "Install directory:    ${INSTALL_DIR}"
 echo "Compiler to use:      ${CC}"
 echo "RPMs needed:         ${RPM_DEPS_BASENAMES}\n"
 
 # Delete already existing files and the git build directory.
-echo "Removing files left over by this script in the current dir, if any..."
+echo "Removing files left over by this script in the current dir, if any...\n"
 rm -rf $GIT_TAR_GZ $GIT_DIR $CURL_TAR_GZ $CURL_DIR
 
 extend_partition_as_needed /opt 150
 extend_partition_as_needed /usr 100
 
 # Download and install required RPMs.
+echo "\nChecking and installing RPMs as needed:"
 for RPM_FILE in $RPM_DEPS; do
     RPM_NAME=`get_rpm_name ${RPM_FILE}`
     echo "Checking if ${RPM_NAME} is already installed..."
@@ -133,12 +138,21 @@ for RPM_FILE in $RPM_DEPS; do
         wget --quiet "$IBM_LINK_BASE"/"$RPM_DIR"/"$RPM_FILE" \
             && sudo rpm -i $RPM_FILE \
             && rm $RPM_FILE
+        if [ $? != 0 ]; then
+            echo "\nCouldn't make sure the ${RPM_NAME} RPM is installed!"
+            exit 255
+        fi
     fi
 done
 
 # Get and compile cURL, with custom CA bundle.
 sudo mkdir -p $CURL_CA_DIR
-echo "Downloading curl certs and sources..."
+if [ $? != 0 ]; then
+    echo "\nCouldn't create the directory to hold the CURL CAs: ${CURL_CA_DIR}!"
+    exit 254
+fi
+
+echo "\nDownloading curl certs and sources..."
 wget --quiet $CURL_CA_BUNDLE -O curl_cacert.pem \
     && sudo $INSTALL_SCRIPT curl_cacert.pem $CURL_CA_FILE
 wget --quiet $CURL_REMOTE_ARCHIVE \
@@ -151,6 +165,10 @@ wget --quiet $CURL_REMOTE_ARCHIVE \
     && sudo make install \
     && cd "$START_FOLDER" \
     && rm -rf $CURL_DIR $CURL_TAR_GZ
+if [ $? != 0 ]; then
+    echo "\nCouldn't download and install cURL!"
+    exit 253
+fi
 
 # Get and compile git.
 export LDFLAGS
@@ -167,6 +185,10 @@ curl --silent -O $GIT_REMOTE_ARCHIVE \
     && sudo gmake install INSTALL=${INSTALL_SCRIPT} \
     && cd $START_FOLDER \
     && rm -rf $GIT_DIR $GIT_TAR_GZ
+if [ $? != 0 ]; then
+    echo "\nCouldn't download and install Git!"
+    exit 252
+fi
 
 # Add some useful stuff to ~/.profile
 echo "\nAdding git-related stuff to ~/.profile ..."
