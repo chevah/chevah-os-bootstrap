@@ -39,13 +39,15 @@ else
         "
 fi
 
+# Avoid HTTPS links here, as the IBM Toolbox's wget doesn't support HTTPS
+# and the newly compiled curl will only support HTTPS if OpenSSL is available.
 CURL_DIR=curl-${CURL_VERSION}
 CURL_TAR_GZ=${CURL_DIR}.tar.gz
 CURL_REMOTE_ARCHIVE=http://ftp.sunet.se/pub/www/utilities/curl/${CURL_TAR_GZ}
 CURL_CA_BUNDLE="http://curl.haxx.se/ca/cacert.pem"
 GIT_DIR=git-${GIT_VERSION}
 GIT_TAR_GZ=${GIT_DIR}.tar.gz
-GIT_REMOTE_ARCHIVE=https://www.kernel.org/pub/software/scm/git/${GIT_TAR_GZ}
+GIT_REMOTE_ARCHIVE=ftp://www.kernel.org/pub/software/scm/git/${GIT_TAR_GZ}
 
 # Absolute path to the "install" binary from the coreutils package.
 INSTALL_SCRIPT="/usr/linux/bin/install"
