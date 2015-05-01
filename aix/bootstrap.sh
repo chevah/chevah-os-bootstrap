@@ -25,11 +25,8 @@ RPM_DEPS="bash-3.2-1.aix5.2.ppc.rpm \
     vim-common-6.3-1.aix5.1.ppc.rpm \
     vim-enhanced-6.3-1.aix5.1.ppc.rpm \
     make-3.80-1.aix5.1.ppc.rpm \
+    sudo-1.6.9p23-2noldap.aix5.3.ppc.rpm \
     "
-
-# We need sudo -E, thus a newer sudo than the one in the IBM's AIX toolbox.
-SUDO_RPM_FILE="sudo-1.8.10-4.aix53.pam.rpm"
-SUDO_RPM_LINK="ftp://ftp.sudo.ws/pub/sudo/packages/AIX/5.3/${SUDO_RPM_FILE}"
 
 
 
@@ -68,9 +65,6 @@ ftp $IBM_FTP_SERVER
 rpm -i $WGET_RPM_FILE \
     && rm $WGET_RPM_FILE
 
-# For vim-enhanced and sudo we need a bit more space...
-chfs -a size=+10M /opt
-
 # Get the other required rpms from AIX's toolbox.
 for RPM_FILE in $RPM_DEPS; do
     echo "Downloading and installing ${RPM_FILE}..."
@@ -80,10 +74,7 @@ for RPM_FILE in $RPM_DEPS; do
         && rm $RPM_FILE
 done
 
-wget $SUDO_RPM_LINK \
-    && rpm -i $SUDO_RPM_FILE \
-    && rm $SUDO_RPM_FILE \
-    && echo '%staff        ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
+echo '%staff        ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
     && chmod 440 /etc/sudoers
 
 # Create the new user.
