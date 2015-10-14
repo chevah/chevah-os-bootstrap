@@ -1,12 +1,16 @@
 #!/bin/sh
 #
 # Downloads, compiles and installs cURL & Git as a user with SUDO rights in AIX.
-# Requires wget, gmake, sudo and (optionally) OpenSSL.
-# It makes use of IBM's XL C compiler, if found. Otherwise, it downloads IBM's
-# GCC RPMs: libgcc and gcc.
-# It also downloads and install the IBM RPMs for coreutils, zlib and zlib-devel.
-# Adds the path to the git binary and other related env vars to its ~/.profile.
+# Requires wget, gmake, sudo, and (optionally) OpenSSL.
 #
+# Makes use of IBM's XL C compiler, if found. Otherwise, it downloads IBM's
+# GCC RPMs: libgcc and gcc.
+# Also downloads and installs the IBM RPMs for coreutils, zlib, and zlib-devel.
+#
+# Adds the path to the git binary and other related env vars to the current's
+# user ~/.profile.
+#
+# Tested in AIX 5.3 (with both compilers), 6.1 (wich XL C), and 7.1 (with XL C).
 
 INSTALL_DIR="/usr/local"
 CURL_CA_DIR="$INSTALL_DIR/etc/curl"
